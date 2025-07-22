@@ -67,6 +67,9 @@ try {
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Enable trust proxy for Railway/cloud deployment
+app.set('trust proxy', true);
+
 // CORS configuration is imported from security middleware
 
 // Log CORS configuration
