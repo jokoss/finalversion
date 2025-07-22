@@ -297,7 +297,7 @@ app.get('*', (req, res, next) => {
       });
     } else {
       console.log('❌ Client build not found, serving fallback HTML');
-      // Client build doesn't exist - serve a basic HTML page
+      // Client build doesn't exist - serve a basic HTML page with working buttons
       res.status(200).send(`
         <!DOCTYPE html>
         <html>
@@ -305,15 +305,75 @@ app.get('*', (req, res, next) => {
             <title>Analytical Testing Laboratory</title>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+              body { 
+                font-family: Arial, sans-serif; 
+                margin: 0; 
+                padding: 50px; 
+                text-align: center; 
+                background-color: #f5f5f5; 
+              }
+              .container { 
+                max-width: 800px; 
+                margin: 0 auto; 
+                background: white; 
+                padding: 40px; 
+                border-radius: 10px; 
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+              }
+              .button { 
+                display: inline-block; 
+                padding: 12px 24px; 
+                margin: 10px; 
+                background-color: #007bff; 
+                color: white; 
+                text-decoration: none; 
+                border-radius: 5px; 
+                transition: background-color 0.3s; 
+              }
+              .button:hover { 
+                background-color: #0056b3; 
+              }
+              .status { 
+                color: #28a745; 
+                font-weight: bold; 
+                margin: 20px 0; 
+              }
+              .loading { 
+                color: #ffc107; 
+                margin: 20px 0; 
+              }
+            </style>
           </head>
           <body>
-            <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+            <div class="container">
               <h1>Analytical Testing Laboratory</h1>
-              <p>The application is building. Please refresh the page in a moment.</p>
-              <p><a href="/api/health">Check Server Health</a></p>
-              <p><a href="/api">API Documentation</a></p>
-              <p><small>Client build not available - Server running in API mode</small></p>
+              <div class="loading">The application is loading. Please refresh the page in a moment.</div>
+              <div class="status">Server Status: Running ✅</div>
+              
+              <div style="margin: 30px 0;">
+                <a href="/" class="button" onclick="window.location.reload(); return false;">🏠 Home</a>
+                <a href="/api/health" class="button" target="_blank">🔍 Server Health</a>
+                <a href="/api" class="button" target="_blank">📊 API Status</a>
+              </div>
+              
+              <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+                <p><small>React application is building... Server running in API mode</small></p>
+                <p><small>If this page persists, the build process may need attention</small></p>
+              </div>
             </div>
+            
+            <script>
+              // Auto-refresh every 30 seconds to check if React app is ready
+              setTimeout(function() {
+                window.location.reload();
+              }, 30000);
+              
+              // Add click handlers for better UX
+              document.addEventListener('DOMContentLoaded', function() {
+                console.log('Fallback page loaded - React app building...');
+              });
+            </script>
           </body>
         </html>
       `);

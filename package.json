@@ -7,7 +7,7 @@
   },
   "scripts": {
     "postinstall": "cd client && npm install",
-    "build": "cd client && npm run build",
+    "build": "echo '🏗️ Building React client...' && cd client && CI=false npm run build && echo '✅ Client build completed' && ls -la client/build/",
     "start": "node server/index.js",
     "migrate-motzz": "node server/scripts/migrate-motzz-data.js"
   },
