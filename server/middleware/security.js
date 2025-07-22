@@ -312,7 +312,7 @@ const corsOptions = {
   maxAge: 86400 // 24 hours
 };
 
-// Helmet configuration
+// Helmet configuration - React-compatible CSP
 const helmetConfig = {
   contentSecurityPolicy: {
     directives: {
@@ -320,12 +320,14 @@ const helmetConfig = {
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:"],
-      scriptSrc: ["'self'"],
-      connectSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Allow React inline scripts and eval
+      connectSrc: ["'self'", "ws:", "wss:"], // Allow WebSocket connections for React dev
       frameSrc: ["'none'"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
-      manifestSrc: ["'self'"]
+      manifestSrc: ["'self'"],
+      workerSrc: ["'self'", "blob:"], // Allow service workers
+      childSrc: ["'self'", "blob:"] // Allow web workers
     }
   },
   crossOriginEmbedderPolicy: false, // Disable for compatibility

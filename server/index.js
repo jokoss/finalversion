@@ -72,10 +72,49 @@ app.use((req, res, next) => {
   }
 });
 
-// Uploads directory
+// Health check endpoint (FIRST - highest priority)
+app.get('/api/health', async (req, res) => {
+  try {
+    await sequelize.authenticate();
+    res.status(200).json({ 
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      database: 'connected',
+      cache: 'disabled'
+    });
+  } catch (error) {
+    res.status(200).json({ 
+      status: 'server-healthy-db-disconnected',
+      timestamp: new Date().toISOString(),
+      database: 'disconnected',
+      cache: 'disabled',
+      error: error.message
+    });
+  }
+});
+
+// API Routes (BEFORE static files - critical fix!)
+app.use('/api/auth', (req, res, next) => {
+  try { authLimiter(req, res, next); } catch (e) { next(); }
+}, authRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/tests', testRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/certifications', certificationRoutes);
+app.use('/api/partners', partnerRoutes);
+app.use('/api/blog', blogRoutes);
+app.use('/api/testimonials', testimonialRoutes);
+app.use('/api/government-contracts', governmentContractRoutes);
+app.use('/api/admin', (req, res, next) => {
+  try { authLimiter(req, res, next); } catch (e) { next(); }
+}, adminRoutes);
+app.use('/api/debug', debugRoutes);
+app.use('/api', apiRoutes);
+
+// Uploads directory (after API routes)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// CACHE-DISABLED STATIC FILE SERVING
+// CACHE-DISABLED STATIC FILE SERVING (AFTER API routes)
 const clientBuildPath = path.resolve(__dirname, '../client/build');
 console.log(`🔍 Client build path: ${clientBuildPath}`);
 
@@ -101,45 +140,6 @@ if (require('fs').existsSync(clientBuildPath)) {
 } else {
   console.log('⚠️ Client build directory not found');
 }
-
-// API Routes
-app.use('/api/auth', (req, res, next) => {
-  try { authLimiter(req, res, next); } catch (e) { next(); }
-}, authRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/tests', testRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/certifications', certificationRoutes);
-app.use('/api/partners', partnerRoutes);
-app.use('/api/blog', blogRoutes);
-app.use('/api/testimonials', testimonialRoutes);
-app.use('/api/government-contracts', governmentContractRoutes);
-app.use('/api/admin', (req, res, next) => {
-  try { authLimiter(req, res, next); } catch (e) { next(); }
-}, adminRoutes);
-app.use('/api/debug', debugRoutes);
-app.use('/api', apiRoutes);
-
-// Health check endpoint
-app.get('/api/health', async (req, res) => {
-  try {
-    await sequelize.authenticate();
-    res.status(200).json({ 
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      database: 'connected',
-      cache: 'disabled'
-    });
-  } catch (error) {
-    res.status(200).json({ 
-      status: 'server-healthy-db-disconnected',
-      timestamp: new Date().toISOString(),
-      database: 'disconnected',
-      cache: 'disabled',
-      error: error.message
-    });
-  }
-});
 
 // CACHE-DISABLED REACT APP SERVING
 app.get('*', (req, res, next) => {
