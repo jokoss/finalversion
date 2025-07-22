@@ -142,6 +142,59 @@ const errorHandler = (err, req, res, next) => {
 
 // Send error response based on environment
 const sendErrorResponse = (err, req, res) => {
+  // Check if this is a frontend route (not an API route)
+  const isApiRoute = req.originalUrl.startsWith('/api/') || 
+                     req.originalUrl.startsWith('/admin/api/') ||
+                     req.headers.accept?.includes('application/json');
+
+  // For frontend routes, serve HTML instead of JSON
+  if (!isApiRoute) {
+    logger.info('Frontend route error, serving HTML fallback', {
+      url: req.originalUrl,
+      method: req.method,
+      error: err.message
+    });
+
+    return res.status(200).send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Analytical Testing Laboratory</title>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            .container { max-width: 600px; margin: 0 auto; }
+            .error { color: #e74c3c; margin: 20px 0; }
+            .links { margin: 30px 0; }
+            .links a { display: inline-block; margin: 10px; padding: 10px 20px; background: #3498db; color: white; text-decoration: none; border-radius: 5px; }
+            .links a:hover { background: #2980b9; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>Analytical Testing Laboratory</h1>
+            <div class="error">
+              <p>The application is loading. Please refresh the page in a moment.</p>
+            </div>
+            <div class="links">
+              <a href="/">Home</a>
+              <a href="/api/health">Server Health</a>
+              <a href="/api">API Status</a>
+            </div>
+            <script>
+              // Auto-refresh after 3 seconds
+              setTimeout(() => {
+                window.location.reload();
+              }, 3000);
+            </script>
+          </div>
+        </body>
+      </html>
+    `);
+  }
+
+  // For API routes, continue with JSON responses
   // Operational, trusted error: send message to client
   if (err.isOperational) {
     return res.status(err.statusCode).json({
