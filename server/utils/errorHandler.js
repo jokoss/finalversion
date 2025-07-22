@@ -155,7 +155,7 @@ const sendErrorResponse = (err, req, res) => {
     });
   }
 
-  // Programming or other unknown error: don't leak error details
+  // Programming or other unknown error: don't leak error details but provide helpful info
   logger.error('Programming Error', {
     error: err,
     stack: err.stack,
@@ -163,13 +163,21 @@ const sendErrorResponse = (err, req, res) => {
     method: req.method
   });
 
-  // Send generic message
+  // Send informative but safe message
   return res.status(500).json({
     success: false,
     status: 'error',
-    message: 'Something went wrong!',
+    message: 'An internal server error occurred. Please try again later.',
     timestamp: new Date().toISOString(),
-    path: req.originalUrl
+    path: req.originalUrl,
+    requestId: req.headers['x-request-id'] || 'unknown',
+    support: {
+      message: 'If this error persists, please contact support',
+      api: {
+        health: '/api/health',
+        diagnostics: '/api/diagnostics'
+      }
+    }
   });
 };
 

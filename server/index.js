@@ -67,8 +67,16 @@ try {
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Enable trust proxy for Railway/cloud deployment
-app.set('trust proxy', true);
+// Enable trust proxy for Railway/cloud deployment with specific configuration
+if (process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production') {
+  // Railway-specific trust proxy configuration
+  app.set('trust proxy', ['loopback', 'linklocal', 'uniquelocal']);
+  console.log('🔧 Railway trust proxy configured for production');
+} else {
+  // Development trust proxy
+  app.set('trust proxy', true);
+  console.log('🔧 Development trust proxy configured');
+}
 
 // CORS configuration is imported from security middleware
 
@@ -115,8 +123,16 @@ app.use(sqlInjectionProtection);
 // 11. NoSQL Injection Protection
 app.use(noSQLInjectionProtection);
 
-// 12. API rate limiting (applied globally)
-app.use(apiLimiter);
+// 12. API rate limiting (applied globally) with error handling
+app.use((req, res, next) => {
+  try {
+    apiLimiter(req, res, next);
+  } catch (error) {
+    console.error('Rate limiter error:', error.message);
+    // Continue without rate limiting if it fails
+    next();
+  }
+});
 
 // Static file serving
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

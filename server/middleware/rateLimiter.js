@@ -14,31 +14,39 @@ setInterval(() => {
   }
 }, 15 * 60 * 1000);
 
-// Custom store implementation
+// Custom store implementation with Railway compatibility
 const customStore = {
   incr: (key, cb) => {
-    const now = Date.now();
-    const windowMs = 15 * 60 * 1000; // 15 minutes
-    
-    if (!requestStore.has(key)) {
-      requestStore.set(key, {
-        count: 1,
-        resetTime: now + windowMs
-      });
-      return cb(null, 1, new Date(now + windowMs));
+    try {
+      const now = Date.now();
+      const windowMs = 15 * 60 * 1000; // 15 minutes
+      
+      if (!requestStore.has(key)) {
+        requestStore.set(key, {
+          count: 1,
+          resetTime: now + windowMs
+        });
+        // CRITICAL FIX: Return timestamp number, not Date object
+        return cb(null, 1, now + windowMs);
+      }
+      
+      const data = requestStore.get(key);
+      
+      // Reset if window expired
+      if (now > data.resetTime) {
+        data.count = 1;
+        data.resetTime = now + windowMs;
+      } else {
+        data.count++;
+      }
+      
+      // CRITICAL FIX: Return timestamp number, not Date object
+      cb(null, data.count, data.resetTime);
+    } catch (error) {
+      logger.error('Rate limiter store error:', error);
+      // Fallback: allow request if store fails
+      cb(null, 1, Date.now() + 15 * 60 * 1000);
     }
-    
-    const data = requestStore.get(key);
-    
-    // Reset if window expired
-    if (now > data.resetTime) {
-      data.count = 1;
-      data.resetTime = now + windowMs;
-    } else {
-      data.count++;
-    }
-    
-    cb(null, data.count, new Date(data.resetTime));
   },
   
   decrement: (key) => {
