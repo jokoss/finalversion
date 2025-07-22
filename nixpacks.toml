@@ -6,11 +6,7 @@ cmds = [
 
 [phases.build]
 cmds = [
-  "echo '🏗️ Building React client...'",
-  "cd client && CI=false npm run build",
-  "echo '✅ Client build completed'",
-  "ls -la client/build/",
-  "node railway-build-verification.js"
+  "cd client && CI=false npm run build"
 ]
 
 [phases.start]
