@@ -1,4 +1,4 @@
-const { sequelize } = require('../models');
+const { sequelize, Testimonial } = require('../models');
 
 // Sample testimonials data
 const testimonials = [
@@ -53,10 +53,6 @@ const testimonials = [
 const seedTestimonials = async () => {
   try {
     console.log('Starting testimonials seeding...');
-    
-    // Initialize the Testimonial model properly
-    const TestimonialFactory = require('../models/Testimonial');
-    const Testimonial = TestimonialFactory(sequelize);
     
     // Check if testimonials already exist
     const result = await Testimonial.findAll();
