@@ -6,7 +6,10 @@ cmds = [
 
 [phases.build]
 cmds = [
-  "cd client && CI=false npm run build"
+  "echo '🚫 CACHE DISABLED: Force fresh build'",
+  "cd client && npm cache clean --force",
+  "cd client && CI=false npm run build --no-cache",
+  "echo '✅ Cache-disabled build completed'"
 ]
 
 [phases.start]
