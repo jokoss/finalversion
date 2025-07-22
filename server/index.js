@@ -188,16 +188,36 @@ try {
 const apiRoutes = require('./routes/api');
 
 // Routes with specific rate limiting
-app.use('/api/auth', authLimiter, authRoutes);
-app.use('/api/categories', apiLimiter, categoryRoutes);
-app.use('/api/tests', apiLimiter, testRoutes);
-app.use('/api/users', apiLimiter, userRoutes);
-app.use('/api/certifications', apiLimiter, certificationRoutes);
-app.use('/api/partners', apiLimiter, partnerRoutes);
-app.use('/api/blog', apiLimiter, blogRoutes);
-app.use('/api/testimonials', apiLimiter, testimonialRoutes);
-app.use('/api/government-contracts', apiLimiter, governmentContractRoutes);
-app.use('/api/admin', authLimiter, adminRoutes);
+app.use('/api/auth', (req, res, next) => {
+  try { authLimiter(req, res, next); } catch (e) { next(); }
+}, authRoutes);
+app.use('/api/categories', (req, res, next) => {
+  try { apiLimiter(req, res, next); } catch (e) { next(); }
+}, categoryRoutes);
+app.use('/api/tests', (req, res, next) => {
+  try { apiLimiter(req, res, next); } catch (e) { next(); }
+}, testRoutes);
+app.use('/api/users', (req, res, next) => {
+  try { apiLimiter(req, res, next); } catch (e) { next(); }
+}, userRoutes);
+app.use('/api/certifications', (req, res, next) => {
+  try { apiLimiter(req, res, next); } catch (e) { next(); }
+}, certificationRoutes);
+app.use('/api/partners', (req, res, next) => {
+  try { apiLimiter(req, res, next); } catch (e) { next(); }
+}, partnerRoutes);
+app.use('/api/blog', (req, res, next) => {
+  try { apiLimiter(req, res, next); } catch (e) { next(); }
+}, blogRoutes);
+app.use('/api/testimonials', (req, res, next) => {
+  try { apiLimiter(req, res, next); } catch (e) { next(); }
+}, testimonialRoutes);
+app.use('/api/government-contracts', (req, res, next) => {
+  try { apiLimiter(req, res, next); } catch (e) { next(); }
+}, governmentContractRoutes);
+app.use('/api/admin', (req, res, next) => {
+  try { authLimiter(req, res, next); } catch (e) { next(); }
+}, adminRoutes);
 app.use('/api/debug', debugRoutes);
 app.use('/api', apiRoutes);
 

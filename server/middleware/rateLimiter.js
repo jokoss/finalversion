@@ -20,14 +20,15 @@ const customStore = {
     try {
       const now = Date.now();
       const windowMs = 15 * 60 * 1000; // 15 minutes
+      const resetTime = now + windowMs;
       
       if (!requestStore.has(key)) {
         requestStore.set(key, {
           count: 1,
-          resetTime: now + windowMs
+          resetTime: resetTime
         });
-        // CRITICAL FIX: Return timestamp number, not Date object
-        return cb(null, 1, now + windowMs);
+        // Return count, resetTime as number, totalHits (for compatibility)
+        return cb(null, 1, resetTime, 1);
       }
       
       const data = requestStore.get(key);
@@ -35,29 +36,38 @@ const customStore = {
       // Reset if window expired
       if (now > data.resetTime) {
         data.count = 1;
-        data.resetTime = now + windowMs;
+        data.resetTime = resetTime;
       } else {
         data.count++;
       }
       
-      // CRITICAL FIX: Return timestamp number, not Date object
-      cb(null, data.count, data.resetTime);
+      // Return count, resetTime as number, totalHits (for compatibility)
+      cb(null, data.count, data.resetTime, data.count);
     } catch (error) {
       logger.error('Rate limiter store error:', error);
       // Fallback: allow request if store fails
-      cb(null, 1, Date.now() + 15 * 60 * 1000);
+      const fallbackResetTime = Date.now() + 15 * 60 * 1000;
+      cb(null, 1, fallbackResetTime, 1);
     }
   },
   
   decrement: (key) => {
-    if (requestStore.has(key)) {
-      const data = requestStore.get(key);
-      data.count = Math.max(0, data.count - 1);
+    try {
+      if (requestStore.has(key)) {
+        const data = requestStore.get(key);
+        data.count = Math.max(0, data.count - 1);
+      }
+    } catch (error) {
+      logger.error('Rate limiter decrement error:', error);
     }
   },
   
   resetKey: (key) => {
-    requestStore.delete(key);
+    try {
+      requestStore.delete(key);
+    } catch (error) {
+      logger.error('Rate limiter resetKey error:', error);
+    }
   }
 };
 
