@@ -303,10 +303,56 @@ const validateEnvironment = () => {
   
   // Check for unknown environment variables (security warning)
   const knownVars = new Set(Object.keys(ENV_VARIABLES));
-  const systemVars = new Set(['PATH', 'HOME', 'USER', 'SHELL', 'PWD', 'LANG', 'TZ', 'TERM']);
+  const systemVars = new Set([
+    // Standard Unix/Linux system vars
+    'PATH', 'HOME', 'USER', 'SHELL', 'PWD', 'LANG', 'TZ', 'TERM',
+    // Windows system vars (case-sensitive)
+    'COMPUTERNAME', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'TEMP', 'TMP',
+    'PROGRAMFILES', 'SYSTEMROOT', 'WINDIR', 'HOMEDRIVE', 'HOMEPATH',
+    'COMMONPROGRAMFILES', 'COMMONPROGRAMW6432', 'PROGRAMW6432', 'PROGRAMFILES(X86)',
+    'COMMONPROGRAMFILES(X86)', 'ALLUSERSPROFILE', 'PUBLIC', 'PATHEXT',
+    'COMSPEC', 'DRIVERDATA', 'LOGONSERVER', 'SESSIONNAME', 'USERDOMAIN',
+    'USERDOMAIN_ROAMINGPROFILE', 'USERNAME', 'OS', 'ONEDRIVE',
+    // Additional Windows vars with exact casing
+    'Path', 'ComSpec', 'SystemDrive', 'SystemRoot', 'windir', 'OneDrive',
+    'ProgramFiles', 'ProgramFiles(x86)', 'ProgramW6432', 'ProgramData',
+    'CommonProgramFiles', 'CommonProgramFiles(x86)', 'CommonProgramW6432',
+    'DriverData', 'PSModulePath', 'EnableLog',
+    // Service ports
+    'ACSetupSvcPort', 'ACSvcPort', 'RlsSvcPort',
+    // Chocolatey
+    'ChocolateyInstall', 'ChocolateyLastPathUpdate',
+    // Database vars (legacy)
+    'DB_HOST', 'DB_NAME', 'DB_PASSWORD', 'DB_PORT', 'DB_USER'
+  ]);
   
   for (const key of Object.keys(process.env)) {
-    if (!knownVars.has(key) && !systemVars.has(key) && !key.startsWith('npm_') && !key.startsWith('NODE_')) {
+    const isKnown = knownVars.has(key);
+    const isSystem = systemVars.has(key);
+    const isNpm = key.startsWith('npm_');
+    const isNode = key.startsWith('NODE_');
+    const isRailway = key.startsWith('RAILWAY_');
+    const isNixpacks = key.startsWith('NIXPACKS_');
+    const isVscode = key.startsWith('VSCODE_') || key.startsWith('TERM_PROGRAM');
+    const isProcessor = key.startsWith('PROCESSOR_');
+    const isWindows = key.startsWith('PROGRAMFILES') || key.startsWith('COMMONPROGRAMFILES');
+    const isChocolatey = key.startsWith('CHOCOLATEY');
+    const isMsmpi = key.startsWith('MSMPI_');
+    const isEfc = key.startsWith('EFC_');
+    const isIntel = key.startsWith('ZES_') || key.startsWith('IGCCSVC_');
+    const isFps = key.startsWith('FPS_BROWSER_');
+    const isChrome = key.startsWith('CHROME_');
+    const isGit = key.startsWith('GIT_');
+    const isColorterm = key === 'COLORTERM';
+    const isOriginalXdg = key === 'ORIGINAL_XDG_CURRENT_DESKTOP';
+    const isNumberOfProcessors = key === 'NUMBER_OF_PROCESSORS';
+    const isEnableLog = key === 'ENABLELOG';
+    const isAcSvc = key.startsWith('ACSVC') || key.startsWith('ACSETUP') || key.startsWith('RLSSVC');
+    
+    if (!isKnown && !isSystem && !isNpm && !isNode && !isRailway && !isNixpacks && 
+        !isVscode && !isProcessor && !isWindows && !isChocolatey && !isMsmpi && 
+        !isEfc && !isIntel && !isFps && !isChrome && !isGit && !isColorterm && 
+        !isOriginalXdg && !isNumberOfProcessors && !isEnableLog && !isAcSvc) {
       warnings.push(`Unknown environment variable: ${key}`);
       logger.warn(`⚠️  Unknown environment variable: ${key}`);
     }
