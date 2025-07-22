@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import { 
   Box, 
   Container,
@@ -11,6 +11,7 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  ListItemButton,
   IconButton,
   Divider,
   Avatar,
@@ -19,7 +20,9 @@ import {
   Tooltip,
   useMediaQuery,
   Fade,
-  Chip
+  Chip,
+  Paper,
+  Button
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import {
@@ -37,7 +40,8 @@ import {
   Settings as SettingsIcon,
   Close as CloseIcon,
   Article as ArticleIcon,
-  FormatQuote as FormatQuoteIcon
+  FormatQuote as FormatQuoteIcon,
+  Business as BusinessIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import CustomizeButton from '../customize/CustomizeButton';
@@ -113,7 +117,8 @@ const AdminLayout = ({ setTheme }) => {
     { text: 'Images', icon: <ImageIcon />, path: '/admin/images' },
     { text: 'Partners', icon: <PeopleIcon />, path: '/admin/partners' },
     { text: 'Blog', icon: <ArticleIcon />, path: '/admin/blog' },
-    { text: 'Testimonials', icon: <FormatQuoteIcon />, path: '/admin/testimonials' }
+    { text: 'Testimonials', icon: <FormatQuoteIcon />, path: '/admin/testimonials' },
+    { text: 'Government Contracts', icon: <BusinessIcon />, path: '/admin/government-contracts' }
   ];
 
   if (isSuperAdmin) {
@@ -232,6 +237,129 @@ const AdminLayout = ({ setTheme }) => {
           </Box>
         </Toolbar>
       </AppBar>
+
+      {/* Navigation Drawer */}
+      <Drawer
+        variant={isMobile ? 'temporary' : 'persistent'}
+        open={isMobile ? mobileOpen : open}
+        onClose={handleDrawerToggle}
+        sx={{
+          width: drawerWidth,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': {
+            width: drawerWidth,
+            boxSizing: 'border-box',
+            background: `linear-gradient(180deg, ${theme.palette.background.paper} 0%, ${theme.palette.background.default} 100%)`,
+            borderRight: `1px solid ${theme.palette.divider}`,
+            boxShadow: theme.customShadows?.sidebar || '0 0 20px rgba(0,0,0,0.1)',
+          },
+        }}
+      >
+        <Toolbar />
+        <Box sx={{ overflow: 'auto', pt: 2 }}>
+          <List>
+            {menuItems.map((item) => (
+              <ListItem
+                key={item.text}
+                disablePadding
+                sx={{ mb: 1, px: 2 }}
+              >
+                <ListItemButton
+                  component={RouterLink}
+                  to={item.path}
+                  selected={isActive(item.path)}
+                  sx={{
+                    borderRadius: '12px',
+                    py: 1.5,
+                    px: 2,
+                    transition: 'all 0.2s ease-in-out',
+                    '&.Mui-selected': {
+                      background: `linear-gradient(135deg, ${theme.palette.primary.main}15, ${theme.palette.secondary.main}10)`,
+                      color: theme.palette.primary.main,
+                      '& .MuiListItemIcon-root': {
+                        color: theme.palette.primary.main,
+                      },
+                      '&:hover': {
+                        background: `linear-gradient(135deg, ${theme.palette.primary.main}20, ${theme.palette.secondary.main}15)`,
+                      },
+                    },
+                    '&:hover': {
+                      background: `${theme.palette.action.hover}`,
+                      transform: 'translateX(4px)',
+                    },
+                  }}
+                >
+                  <ListItemIcon
+                    sx={{
+                      minWidth: 40,
+                      color: 'text.secondary',
+                    }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.text}
+                    primaryTypographyProps={{
+                      fontWeight: isActive(item.path) ? 600 : 500,
+                      fontSize: '0.95rem',
+                    }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+          
+          <Divider sx={{ mx: 2, my: 3 }} />
+          
+          {/* User Profile Section */}
+          <Box sx={{ px: 3, py: 2 }}>
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2,
+                background: `linear-gradient(135deg, ${theme.palette.primary.main}08, ${theme.palette.secondary.main}05)`,
+                border: `1px solid ${theme.palette.divider}`,
+                borderRadius: '12px',
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                <Avatar
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    bgcolor: theme.palette.primary.main,
+                    fontWeight: 'bold',
+                  }}
+                >
+                  {currentUser?.username?.charAt(0)?.toUpperCase() || 'A'}
+                </Avatar>
+                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }} noWrap>
+                    {currentUser?.username || 'Admin'}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" noWrap>
+                    {isSuperAdmin ? 'Super Admin' : 'Administrator'}
+                  </Typography>
+                </Box>
+              </Box>
+              <Button
+                fullWidth
+                variant="outlined"
+                size="small"
+                startIcon={<LogoutIcon />}
+                onClick={handleLogout}
+                sx={{
+                  borderRadius: '8px',
+                  textTransform: 'none',
+                  fontSize: '0.85rem',
+                }}
+              >
+                Sign Out
+              </Button>
+            </Paper>
+          </Box>
+        </Box>
+      </Drawer>
       
       <Box
         component="main"
@@ -243,6 +371,11 @@ const AdminLayout = ({ setTheme }) => {
           maxHeight: '100vh',
           display: 'flex',
           flexDirection: 'column',
+          marginLeft: { sm: open ? `${drawerWidth}px` : 0 },
+          transition: theme.transitions.create('margin', {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+          }),
         }}
       >
         <Toolbar />

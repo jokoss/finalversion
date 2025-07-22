@@ -84,6 +84,12 @@ const FALLBACK_SERVICES = [
     name: 'Molecular Diagnostics',
     description: 'Advanced molecular testing for genetic analysis, disease diagnosis, and research applications.',
     imageUrl: '/images/categories/molecular-diagnostics.jpg',
+  },
+  {
+    id: 9,
+    name: 'Clinical Chemistry',
+    description: 'Comprehensive clinical chemistry testing for medical diagnosis and patient monitoring.',
+    imageUrl: '/images/categories/clinical-chemistry.jpg',
   }
 ];
 
@@ -464,8 +470,8 @@ const FeaturedServices = () => {
         const categoriesData = response.data.data || response.data;
         
         if (Array.isArray(categoriesData) && categoriesData.length > 0) {
-          // Take first 8 categories for featured section (2 rows of 4)
-          setCategories(categoriesData.slice(0, 8));
+        // Take first 9 categories for featured section (3 rows of 3)
+        setCategories(categoriesData.slice(0, 9));
         } else {
           console.log('No categories found in API response. Using fallback data.');
           setCategories(FALLBACK_SERVICES);
@@ -573,7 +579,7 @@ const FeaturedServices = () => {
             const serviceGradient = `linear-gradient(135deg, ${serviceColor}20, ${serviceColor}40)`;
             
             return (
-              <Grid item xs={12} sm={6} md={3} key={service.id || index}>
+              <Grid item xs={12} sm={6} md={4} key={service.id || index}>
                 <Card 
                   elevation={0}
                   sx={{ 

@@ -1,4 +1,4 @@
-const models = require('../models');
+const { sequelize } = require('../models');
 
 // Sample testimonials data
 const testimonials = [
@@ -54,8 +54,12 @@ const seedTestimonials = async () => {
   try {
     console.log('Starting testimonials seeding...');
     
+    // Initialize the Testimonial model properly
+    const TestimonialFactory = require('../models/Testimonial');
+    const Testimonial = TestimonialFactory(sequelize);
+    
     // Check if testimonials already exist
-    const result = await models.Testimonial.findAll();
+    const result = await Testimonial.findAll();
     const count = result.length;
     
     if (count > 0) {
@@ -64,11 +68,12 @@ const seedTestimonials = async () => {
     }
     
     // Create testimonials
-    await models.Testimonial.bulkCreate(testimonials);
+    await Testimonial.bulkCreate(testimonials);
     
     console.log(`Successfully seeded ${testimonials.length} testimonials!`);
   } catch (error) {
     console.error('Error seeding testimonials:', error);
+    throw error;
   }
 };
 

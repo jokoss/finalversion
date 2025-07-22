@@ -1,8 +1,46 @@
 require('dotenv').config();
+
+// Validate environment variables first
+const { validateEnvironment } = require('./utils/envValidator');
+try {
+  validateEnvironment();
+} catch (error) {
+  console.error('❌ Environment validation failed:', error.message);
+  process.exit(1);
+}
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const helmet = require('helmet');
 const { sequelize } = require('./models');
+
+// Import security middleware
+const {
+  xssProtection,
+  sqlInjectionProtection,
+  noSQLInjectionProtection,
+  requestSizeLimiter,
+  userAgentValidation,
+  contentTypeValidation,
+  corsOptions,
+  helmetConfig,
+  securityHeaders,
+  ipSecurityCheck,
+  cors: corsMiddleware,
+  helmet: helmetMiddleware
+} = require('./middleware/security');
+
+// Import rate limiting
+const {
+  authLimiter,
+  apiLimiter,
+  uploadLimiter
+} = require('./middleware/rateLimiter');
+
+// Import error handler
+const { errorHandler } = require('./utils/errorHandler');
+const logger = require('./utils/logger');
 const authRoutes = require('./routes/auth.routes');
 const categoryRoutes = require('./routes/category.routes');
 const testRoutes = require('./routes/test.routes');
@@ -12,6 +50,7 @@ const certificationRoutes = require('./routes/certification.routes');
 const partnerRoutes = require('./routes/partner.routes');
 const blogRoutes = require('./routes/blog.routes');
 const testimonialRoutes = require('./routes/testimonial.routes');
+const governmentContractRoutes = require('./routes/governmentContract.routes');
 const debugRoutes = require('./routes/debug.routes');
 
 // Ensure uploads directory exists
@@ -28,65 +67,7 @@ try {
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Configure CORS
-const corsOptions = {
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl requests)
-    if (!origin) {
-      console.log('CORS: Allowing request with no origin');
-      return callback(null, true);
-    }
-    
-    // Check if the origin is allowed
-    if (process.env.NODE_ENV === 'production') {
-      // In production, allow the configured frontend URL and any additional allowed origins
-      let allowedOrigins = [
-        process.env.FRONTEND_URL
-      ];
-      
-      // Add any additional origins from ALLOWED_ORIGINS env var
-      if (process.env.ALLOWED_ORIGINS) {
-        const additionalOrigins = process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim());
-        allowedOrigins = [...allowedOrigins, ...additionalOrigins];
-      }
-      
-      // Always include these default Render domains
-      allowedOrigins.push(
-        'https://analytical-lab-web.onrender.com',
-        'https://analytical-lab-web.render.com'
-      );
-      
-      console.log('CORS: Allowed origins:', allowedOrigins);
-      
-      // Also allow any render.com or onrender.com domains
-      if (origin.includes('render.com') || origin.includes('onrender.com')) {
-        console.log(`CORS: Allowing Render domain: ${origin}`);
-        return callback(null, true);
-      }
-      
-      // Check against the allowed origins list
-      if (allowedOrigins.indexOf(origin) !== -1) {
-        console.log(`CORS: Allowing listed origin: ${origin}`);
-        return callback(null, true);
-      }
-      
-      // If we get here, the origin is not allowed
-      console.warn(`CORS blocked request from origin: ${origin}`);
-      // In production, we'll allow it anyway but log it - this helps with debugging
-      // return callback(null, false);
-      return callback(null, true);
-    } else {
-      // In development, allow localhost and any origin
-      console.log(`CORS: Development mode, allowing origin: ${origin}`);
-      return callback(null, true);
-    }
-  },
-  credentials: true,
-  optionsSuccessStatus: 200,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['Content-Length', 'X-Requested-With']
-};
+// CORS configuration is imported from security middleware
 
 // Log CORS configuration
 console.log(`CORS configured for environment: ${process.env.NODE_ENV}`);
@@ -94,11 +75,50 @@ if (process.env.NODE_ENV === 'production') {
   console.log(`FRONTEND_URL: ${process.env.FRONTEND_URL || 'not set'}`);
 }
 
-// Middleware
+// Security Middleware (applied in order)
+console.log('🔒 Applying security middleware...');
+
+// 1. Helmet for security headers
+app.use(helmet(helmetConfig));
+
+// 2. Custom security headers
+app.use(securityHeaders);
+
+// 3. IP security checks
+app.use(ipSecurityCheck);
+
+// 4. User-Agent validation
+app.use(userAgentValidation);
+
+// 5. Request size limiting
+app.use(requestSizeLimiter('10mb'));
+
+// 6. CORS with security configuration
 app.use(cors(corsOptions));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// 7. Content-Type validation for non-GET requests
+app.use(contentTypeValidation());
+
+// 8. Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// 9. XSS Protection
+app.use(xssProtection);
+
+// 10. SQL Injection Protection
+app.use(sqlInjectionProtection);
+
+// 11. NoSQL Injection Protection
+app.use(noSQLInjectionProtection);
+
+// 12. API rate limiting (applied globally)
+app.use(apiLimiter);
+
+// Static file serving
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+console.log('✅ Security middleware applied successfully');
 
 // Serve static files from React app (Railway-safe)
 try {
@@ -118,16 +138,17 @@ try {
 // Import API routes
 const apiRoutes = require('./routes/api');
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/tests', testRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/certifications', certificationRoutes);
-app.use('/api/partners', partnerRoutes);
-app.use('/api/blog', blogRoutes);
-app.use('/api/testimonials', testimonialRoutes);
-app.use('/api/admin', adminRoutes);
+// Routes with specific rate limiting
+app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/categories', apiLimiter, categoryRoutes);
+app.use('/api/tests', apiLimiter, testRoutes);
+app.use('/api/users', apiLimiter, userRoutes);
+app.use('/api/certifications', apiLimiter, certificationRoutes);
+app.use('/api/partners', apiLimiter, partnerRoutes);
+app.use('/api/blog', apiLimiter, blogRoutes);
+app.use('/api/testimonials', apiLimiter, testimonialRoutes);
+app.use('/api/government-contracts', apiLimiter, governmentContractRoutes);
+app.use('/api/admin', authLimiter, adminRoutes);
 app.use('/api/debug', debugRoutes);
 app.use('/api', apiRoutes);
 
@@ -230,14 +251,7 @@ app.get('*', (req, res) => {
 });
 
 // Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ 
-    success: false,
-    message: 'Internal Server Error',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
-});
+app.use(errorHandler);
 
 // Start server with better error handling - RAILWAY NUCLEAR FIX
 console.log('🚀 RAILWAY DEPLOYMENT: Starting server initialization...');

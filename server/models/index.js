@@ -7,9 +7,11 @@ const Image = require('./Image');
 const Partner = require('./Partner');
 const BlogPost = require('./BlogPost');
 const TestimonialFactory = require('./Testimonial');
+const GovernmentContractFactory = require('./GovernmentContract');
 
 // Initialize models that are factory functions
 const Testimonial = TestimonialFactory(sequelize);
+const GovernmentContract = GovernmentContractFactory(sequelize);
 
 // Define associations
 Category.hasMany(Test, {
@@ -34,6 +36,7 @@ const models = {
   Partner,
   BlogPost,
   Testimonial,
+  GovernmentContract,
   sequelize
 };
 

@@ -36,6 +36,7 @@ import ImageManagement from './pages/admin/ImageManagement';
 import PartnerManagement from './pages/admin/PartnerManagement';
 import BlogManagement from './pages/admin/BlogManagement';
 import TestimonialManagement from './pages/admin/TestimonialManagement';
+import GovernmentContractManagement from './pages/admin/GovernmentContractManagement';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, adminOnly = false, superAdminOnly = false }) => {
@@ -126,6 +127,7 @@ function App() {
           <Route path="partners" element={<PartnerManagement />} />
           <Route path="blog" element={<BlogManagement />} />
           <Route path="testimonials" element={<TestimonialManagement />} />
+          <Route path="government-contracts" element={<GovernmentContractManagement />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route 
             path="users" 

@@ -1,88 +1,88 @@
-require('dotenv').config();
-const { Certification, sequelize } = require('../models');
+const models = require('../models');
 
-const sampleCertifications = [
+// Sample certifications data
+const certifications = [
   {
     name: 'ISO 9001:2015',
-    description: 'Quality Management Systems certification demonstrating our commitment to consistent quality and customer satisfaction.',
-    externalUrl: 'https://www.iso.org/standard/62085.html',
-    sortOrder: 1,
-    isActive: true,
-    isDisplayed: true
+    description: 'Quality Management Systems - Requirements',
+    issuingBody: 'International Organization for Standardization',
+    issueDate: new Date('2020-01-15'),
+    expiryDate: new Date('2023-01-15'),
+    certificateNumber: 'ISO-9001-2020-001',
+    isActive: true
   },
   {
-    name: 'CLIA Certified',
-    description: 'Clinical Laboratory Improvement Amendments certification for accurate and reliable clinical testing.',
-    externalUrl: 'https://www.cms.gov/Regulations-and-Guidance/Legislation/CLIA',
-    sortOrder: 2,
-    isActive: true,
-    isDisplayed: true
+    name: 'ISO 17025:2017',
+    description: 'General requirements for the competence of testing and calibration laboratories',
+    issuingBody: 'International Organization for Standardization',
+    issueDate: new Date('2019-06-20'),
+    expiryDate: new Date('2022-06-20'),
+    certificateNumber: 'ISO-17025-2019-002',
+    isActive: true
   },
   {
-    name: 'EPA Certified',
-    description: 'Environmental Protection Agency certification for environmental testing and analysis.',
-    externalUrl: 'https://www.epa.gov/',
-    sortOrder: 3,
-    isActive: true,
-    isDisplayed: true
+    name: 'CLIA Certification',
+    description: 'Clinical Laboratory Improvement Amendments',
+    issuingBody: 'Centers for Medicare & Medicaid Services',
+    issueDate: new Date('2021-03-10'),
+    expiryDate: new Date('2024-03-10'),
+    certificateNumber: 'CLIA-2021-003',
+    isActive: true
   },
   {
-    name: 'FDA Registered',
-    description: 'Food and Drug Administration registration for food safety and pharmaceutical testing.',
-    externalUrl: 'https://www.fda.gov/',
-    sortOrder: 4,
-    isActive: true,
-    isDisplayed: true
+    name: 'CAP Accreditation',
+    description: 'College of American Pathologists Laboratory Accreditation',
+    issuingBody: 'College of American Pathologists',
+    issueDate: new Date('2020-09-15'),
+    expiryDate: new Date('2023-09-15'),
+    certificateNumber: 'CAP-2020-004',
+    isActive: true
   },
   {
-    name: 'ACLASS A2LA',
-    description: 'American Association for Laboratory Accreditation certification for testing competence.',
-    externalUrl: 'https://a2la.org/',
-    sortOrder: 5,
-    isActive: true,
-    isDisplayed: true
+    name: 'EPA Certification',
+    description: 'Environmental Protection Agency Laboratory Certification',
+    issuingBody: 'Environmental Protection Agency',
+    issueDate: new Date('2021-01-25'),
+    expiryDate: new Date('2024-01-25'),
+    certificateNumber: 'EPA-2021-005',
+    isActive: true
   }
 ];
 
-async function seedCertifications() {
+// Function to seed certifications
+const seedCertifications = async () => {
   try {
-    // Connect to database
-    await sequelize.authenticate();
-    console.log('Database connection established successfully.');
-
-    // Sync models
-    await sequelize.sync({ alter: true });
-    console.log('Database models synchronized.');
-
+    console.log('Starting certifications seeding...');
+    
     // Check if certifications already exist
-    const existingCertifications = await Certification.findAll();
-    if (existingCertifications.length > 0) {
-      console.log('Certifications already exist. Skipping seed process.');
+    const count = await models.Certification.count();
+    
+    if (count > 0) {
+      console.log(`Certifications table already has ${count} records. Skipping seed.`);
       return;
     }
-
+    
     // Create certifications
-    console.log('Creating sample certifications...');
+    await models.Certification.bulkCreate(certifications);
     
-    for (const certData of sampleCertifications) {
-      const certification = await Certification.create(certData);
-      console.log(`✓ Created certification: ${certification.name}`);
-    }
-
-    console.log('\n🎉 Successfully seeded certifications!');
-    console.log(`Total certifications created: ${sampleCertifications.length}`);
-    
+    console.log(`Successfully seeded ${certifications.length} certifications!`);
   } catch (error) {
-    console.error('❌ Error seeding certifications:', error);
-  } finally {
-    await sequelize.close();
-    console.log('Database connection closed.');
+    console.error('Error seeding certifications:', error);
   }
-}
+};
 
-// Run the seed function
+// Execute the seed function if this script is run directly
 if (require.main === module) {
-  seedCertifications();
+  seedCertifications()
+    .then(() => {
+      console.log('Certifications seeding completed');
+      process.exit(0);
+    })
+    .catch(error => {
+      console.error('Certifications seeding failed:', error);
+      process.exit(1);
+    });
+} else {
+  // Export for use in other scripts
+  module.exports = seedCertifications;
 }
-
-module.exports = seedCertifications;

@@ -123,4 +123,22 @@ router.get('/testimonials', async (req, res) => {
   }
 });
 
+// Fallback API routes for government contracts
+router.get('/government-contracts', async (req, res) => {
+  try {
+    console.log('Fallback API: Serving government contracts');
+    return res.status(200).json({
+      success: true,
+      data: []
+    });
+  } catch (error) {
+    console.error('Fallback API error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
