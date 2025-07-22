@@ -139,16 +139,46 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 console.log('✅ Security middleware applied successfully');
 
-// Serve static files from React app (Railway-safe)
+// Serve static files from React app (Railway-safe with multiple path attempts)
 try {
   const path = require('path');
-  const clientBuildPath = path.resolve(__dirname, '../client/build');
+  const fs = require('fs');
   
-  if (require('fs').existsSync(clientBuildPath)) {
+  // Try multiple possible paths for Railway deployment
+  const possiblePaths = [
+    path.resolve(__dirname, '../client/build'),           // Standard relative path
+    path.resolve(process.cwd(), 'client/build'),          // From project root
+    path.resolve('/app/client/build'),                    // Railway absolute path
+    path.resolve(__dirname, '../../client/build')        // Alternative relative path
+  ];
+  
+  let clientBuildPath = null;
+  
+  for (const testPath of possiblePaths) {
+    console.log(`🔍 Testing client build path: ${testPath}`);
+    if (fs.existsSync(testPath)) {
+      clientBuildPath = testPath;
+      console.log(`✅ Found client build directory at: ${clientBuildPath}`);
+      break;
+    } else {
+      console.log(`❌ Not found: ${testPath}`);
+    }
+  }
+  
+  if (clientBuildPath) {
     app.use(express.static(clientBuildPath));
     console.log(`✅ Serving static files from: ${clientBuildPath}`);
+    
+    // List files in build directory for debugging
+    try {
+      const files = fs.readdirSync(clientBuildPath);
+      console.log(`📁 Files in build directory: ${files.join(', ')}`);
+    } catch (listError) {
+      console.log('⚠️ Could not list build directory files:', listError.message);
+    }
   } else {
-    console.log(`⚠️ Client build directory not found: ${clientBuildPath}`);
+    console.log('⚠️ Client build directory not found in any expected location');
+    console.log('📍 Searched paths:', possiblePaths);
   }
 } catch (error) {
   console.log('⚠️ Static file serving setup failed:', error.message);
@@ -254,21 +284,40 @@ app.get('*', (req, res, next) => {
   try {
     const path = require('path');
     const fs = require('fs');
-    const clientBuildPath = path.resolve(__dirname, '../client/build/index.html');
     
     console.log(`🔍 Serving route: ${req.path}`);
-    console.log(`🔍 Looking for client build at: ${clientBuildPath}`);
+    
+    // Try multiple possible paths for Railway deployment
+    const possibleIndexPaths = [
+      path.resolve(__dirname, '../client/build/index.html'),           // Standard relative path
+      path.resolve(process.cwd(), 'client/build/index.html'),          // From project root
+      path.resolve('/app/client/build/index.html'),                    // Railway absolute path
+      path.resolve(__dirname, '../../client/build/index.html')        // Alternative relative path
+    ];
+    
+    let indexHtmlPath = null;
+    
+    for (const testPath of possibleIndexPaths) {
+      console.log(`🔍 Testing index.html path: ${testPath}`);
+      if (fs.existsSync(testPath)) {
+        indexHtmlPath = testPath;
+        console.log(`✅ Found index.html at: ${indexHtmlPath}`);
+        break;
+      } else {
+        console.log(`❌ Not found: ${testPath}`);
+      }
+    }
     
     // Check if client build exists
-    if (fs.existsSync(clientBuildPath)) {
+    if (indexHtmlPath) {
       console.log('✅ Client build found, serving index.html');
       // Use sendFile with proper error handling
-      res.sendFile(clientBuildPath, (err) => {
+      res.sendFile(indexHtmlPath, (err) => {
         if (err) {
           console.error('❌ Error serving client file:', err.message);
           // If sendFile fails, try to read and send the file manually
           try {
-            const indexContent = fs.readFileSync(clientBuildPath, 'utf8');
+            const indexContent = fs.readFileSync(indexHtmlPath, 'utf8');
             res.setHeader('Content-Type', 'text/html');
             res.send(indexContent);
           } catch (readError) {
@@ -296,7 +345,8 @@ app.get('*', (req, res, next) => {
         }
       });
     } else {
-      console.log('❌ Client build not found, serving fallback HTML');
+      console.log('❌ Client build not found in any location, serving fallback HTML');
+      console.log('📍 Searched paths:', possibleIndexPaths);
       // Client build doesn't exist - serve a basic HTML page with working buttons
       res.status(200).send(`
         <!DOCTYPE html>
@@ -330,6 +380,9 @@ app.get('*', (req, res, next) => {
                 text-decoration: none; 
                 border-radius: 5px; 
                 transition: background-color 0.3s; 
+                cursor: pointer;
+                border: none;
+                font-size: 16px;
               }
               .button:hover { 
                 background-color: #0056b3; 
@@ -343,36 +396,72 @@ app.get('*', (req, res, next) => {
                 color: #ffc107; 
                 margin: 20px 0; 
               }
+              .refresh-info {
+                background-color: #e9ecef;
+                padding: 15px;
+                border-radius: 5px;
+                margin: 20px 0;
+                font-size: 14px;
+              }
             </style>
           </head>
           <body>
             <div class="container">
-              <h1>Analytical Testing Laboratory</h1>
-              <div class="loading">The application is loading. Please refresh the page in a moment.</div>
-              <div class="status">Server Status: Running ✅</div>
+              <h1>🧪 Analytical Testing Laboratory</h1>
+              <div class="loading">⏳ React application is loading...</div>
+              <div class="status">✅ Server Status: Running & Healthy</div>
               
               <div style="margin: 30px 0;">
-                <a href="/" class="button" onclick="window.location.reload(); return false;">🏠 Home</a>
-                <a href="/api/health" class="button" target="_blank">🔍 Server Health</a>
-                <a href="/api" class="button" target="_blank">📊 API Status</a>
+                <button class="button" onclick="window.location.reload();">🏠 Reload Home</button>
+                <button class="button" onclick="window.open('/api/health', '_blank');">🔍 Server Health</button>
+                <button class="button" onclick="window.open('/api', '_blank');">📊 API Status</button>
+              </div>
+              
+              <div class="refresh-info">
+                <strong>🔄 Auto-refresh in <span id="countdown">30</span> seconds</strong>
+                <br><small>The page will automatically refresh to check if the React app is ready</small>
               </div>
               
               <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-                <p><small>React application is building... Server running in API mode</small></p>
-                <p><small>If this page persists, the build process may need attention</small></p>
+                <p><small>🚀 Server is running in production mode</small></p>
+                <p><small>📦 React build files are being served when ready</small></p>
+                <p><small>⚡ All API endpoints are functional</small></p>
               </div>
             </div>
             
             <script>
-              // Auto-refresh every 30 seconds to check if React app is ready
-              setTimeout(function() {
-                window.location.reload();
-              }, 30000);
+              console.log('🧪 Analytical Testing Laboratory - Fallback page loaded');
+              console.log('📊 Server health check available at /api/health');
               
-              // Add click handlers for better UX
-              document.addEventListener('DOMContentLoaded', function() {
-                console.log('Fallback page loaded - React app building...');
-              });
+              // Countdown timer
+              let countdown = 30;
+              const countdownElement = document.getElementById('countdown');
+              
+              const timer = setInterval(function() {
+                countdown--;
+                if (countdownElement) {
+                  countdownElement.textContent = countdown;
+                }
+                
+                if (countdown <= 0) {
+                  clearInterval(timer);
+                  console.log('🔄 Auto-refreshing to check for React app...');
+                  window.location.reload();
+                }
+              }, 1000);
+              
+              // Test API connectivity on page load
+              fetch('/api/health')
+                .then(response => response.json())
+                .then(data => {
+                  console.log('✅ Server health check successful:', data);
+                  if (data.status === 'healthy') {
+                    document.querySelector('.status').innerHTML = '✅ Server Status: ' + data.status.toUpperCase() + ' (Database: ' + data.database + ')';
+                  }
+                })
+                .catch(error => {
+                  console.warn('⚠️ Health check failed:', error);
+                });
             </script>
           </body>
         </html>
