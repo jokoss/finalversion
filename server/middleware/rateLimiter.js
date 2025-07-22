@@ -1,5 +1,4 @@
 const rateLimit = require('express-rate-limit');
-const slowDown = require('express-slow-down');
 const logger = require('../utils/logger');
 
 // Store for tracking requests (in production, use Redis)
@@ -136,14 +135,6 @@ const passwordResetLimiter = rateLimit({
   handler: rateLimitHandler
 });
 
-// Slow down middleware for repeated requests
-const speedLimiter = slowDown({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  delayAfter: 50, // allow 50 requests per 15 minutes at full speed
-  delayMs: 500, // slow down subsequent requests by 500ms per request
-  maxDelayMs: 20000, // maximum delay of 20 seconds
-  skipSuccessfulRequests: skipSuccessfulRequests
-});
 
 // Create custom rate limiter
 const createRateLimiter = (options = {}) => {
@@ -223,7 +214,6 @@ module.exports = {
   uploadLimiter,
   adminLimiter,
   passwordResetLimiter,
-  speedLimiter,
   createRateLimiter,
   rateLimitInfo,
   createIPWhitelist,
