@@ -228,27 +228,61 @@ app.get('/api/diagnostics', (req, res) => {
     });
 });
 
-// Serve React app for all other routes (Railway-safe)
-app.get('*', (req, res) => {
+// Serve React app for all other routes (Railway-safe with proper error handling)
+app.get('*', (req, res, next) => {
   try {
     const path = require('path');
+    const fs = require('fs');
     const clientBuildPath = path.resolve(__dirname, '../client/build/index.html');
     
-    if (require('fs').existsSync(clientBuildPath)) {
-      res.sendFile(clientBuildPath);
+    // Check if client build exists
+    if (fs.existsSync(clientBuildPath)) {
+      // Use sendFile with error handling
+      res.sendFile(clientBuildPath, (err) => {
+        if (err) {
+          console.error('Error serving client file:', err.message);
+          // Fallback to API response if file serving fails
+          res.status(200).json({ 
+            message: 'Analytical Testing Laboratory API Server',
+            status: 'running',
+            note: 'Client file serving failed - API only mode',
+            api: {
+              health: '/api/health',
+              diagnostics: '/api/diagnostics',
+              root: '/api'
+            }
+          });
+        }
+      });
     } else {
-      // Fallback if client build doesn't exist
+      // Client build doesn't exist - serve API info
+      console.log('Client build not found, serving API info');
       res.status(200).json({ 
         message: 'Analytical Testing Laboratory API Server',
         status: 'running',
-        note: 'Client build not available - API only mode'
+        note: 'Client build not available - API only mode',
+        api: {
+          health: '/api/health',
+          diagnostics: '/api/diagnostics',
+          root: '/api'
+        },
+        timestamp: new Date().toISOString()
       });
     }
   } catch (error) {
+    console.error('Catch-all route error:', error.message);
+    // Don't call next(error) to avoid triggering error handler
+    // Instead, send a controlled response
     res.status(200).json({ 
       message: 'Analytical Testing Laboratory API Server',
       status: 'running',
-      error: 'Client serving failed'
+      note: 'Client serving error - API only mode',
+      api: {
+        health: '/api/health',
+        diagnostics: '/api/diagnostics',
+        root: '/api'
+      },
+      timestamp: new Date().toISOString()
     });
   }
 });
