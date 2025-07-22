@@ -26,7 +26,7 @@ const customStore = {
         count: 1,
         resetTime: now + windowMs
       });
-      return cb(null, 1, now + windowMs);
+      return cb(null, 1, new Date(now + windowMs));
     }
     
     const data = requestStore.get(key);
@@ -39,7 +39,7 @@ const customStore = {
       data.count++;
     }
     
-    cb(null, data.count, data.resetTime);
+    cb(null, data.count, new Date(data.resetTime));
   },
   
   decrement: (key) => {
