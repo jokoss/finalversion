@@ -246,60 +246,100 @@ app.get('/api/diagnostics', (req, res) => {
 
 // Serve React app for all other routes (Railway-safe with proper error handling)
 app.get('*', (req, res, next) => {
+  // Skip API routes - they should have been handled above
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
+  
   try {
     const path = require('path');
     const fs = require('fs');
     const clientBuildPath = path.resolve(__dirname, '../client/build/index.html');
     
+    console.log(`🔍 Serving route: ${req.path}`);
+    console.log(`🔍 Looking for client build at: ${clientBuildPath}`);
+    
     // Check if client build exists
     if (fs.existsSync(clientBuildPath)) {
-      // Use sendFile with error handling
+      console.log('✅ Client build found, serving index.html');
+      // Use sendFile with proper error handling
       res.sendFile(clientBuildPath, (err) => {
         if (err) {
-          console.error('Error serving client file:', err.message);
-          // Fallback to API response if file serving fails
-          res.status(200).json({ 
-            message: 'Analytical Testing Laboratory API Server',
-            status: 'running',
-            note: 'Client file serving failed - API only mode',
-            api: {
-              health: '/api/health',
-              diagnostics: '/api/diagnostics',
-              root: '/api'
-            }
-          });
+          console.error('❌ Error serving client file:', err.message);
+          // If sendFile fails, try to read and send the file manually
+          try {
+            const indexContent = fs.readFileSync(clientBuildPath, 'utf8');
+            res.setHeader('Content-Type', 'text/html');
+            res.send(indexContent);
+          } catch (readError) {
+            console.error('❌ Failed to read index.html manually:', readError.message);
+            // Last resort: send a basic HTML page with error info
+            res.status(500).send(`
+              <!DOCTYPE html>
+              <html>
+                <head>
+                  <title>Analytical Testing Laboratory</title>
+                  <meta charset="utf-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1">
+                </head>
+                <body>
+                  <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+                    <h1>Analytical Testing Laboratory</h1>
+                    <p>The application is starting up. Please refresh the page in a moment.</p>
+                    <p><a href="/api/health">Check Server Health</a></p>
+                    <p><small>Error: Unable to serve client application</small></p>
+                  </div>
+                </body>
+              </html>
+            `);
+          }
         }
       });
     } else {
-      // Client build doesn't exist - serve API info
-      console.log('Client build not found, serving API info');
-      res.status(200).json({ 
-        message: 'Analytical Testing Laboratory API Server',
-        status: 'running',
-        note: 'Client build not available - API only mode',
-        api: {
-          health: '/api/health',
-          diagnostics: '/api/diagnostics',
-          root: '/api'
-        },
-        timestamp: new Date().toISOString()
-      });
+      console.log('❌ Client build not found, serving fallback HTML');
+      // Client build doesn't exist - serve a basic HTML page
+      res.status(200).send(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Analytical Testing Laboratory</title>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+          </head>
+          <body>
+            <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+              <h1>Analytical Testing Laboratory</h1>
+              <p>The application is building. Please refresh the page in a moment.</p>
+              <p><a href="/api/health">Check Server Health</a></p>
+              <p><a href="/api">API Documentation</a></p>
+              <p><small>Client build not available - Server running in API mode</small></p>
+            </div>
+          </body>
+        </html>
+      `);
     }
   } catch (error) {
-    console.error('Catch-all route error:', error.message);
-    // Don't call next(error) to avoid triggering error handler
-    // Instead, send a controlled response
-    res.status(200).json({ 
-      message: 'Analytical Testing Laboratory API Server',
-      status: 'running',
-      note: 'Client serving error - API only mode',
-      api: {
-        health: '/api/health',
-        diagnostics: '/api/diagnostics',
-        root: '/api'
-      },
-      timestamp: new Date().toISOString()
-    });
+    console.error('❌ Catch-all route error:', error.message);
+    // Send a basic HTML error page instead of JSON
+    res.status(500).send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Analytical Testing Laboratory - Error</title>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+        </head>
+        <body>
+          <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+            <h1>Analytical Testing Laboratory</h1>
+            <p>There was an error loading the application.</p>
+            <p><a href="/api/health">Check Server Health</a></p>
+            <p><a href="/api">API Documentation</a></p>
+            <p><small>Error: ${error.message}</small></p>
+          </div>
+        </body>
+      </html>
+    `);
   }
 });
 
