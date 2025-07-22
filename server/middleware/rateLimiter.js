@@ -1,77 +1,7 @@
 const rateLimit = require('express-rate-limit');
 const logger = require('../utils/logger');
 
-// Store for tracking requests (in production, use Redis)
-const requestStore = new Map();
-
-// Clean up old entries every 15 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, data] of requestStore.entries()) {
-    if (now - data.resetTime > 15 * 60 * 1000) {
-      requestStore.delete(key);
-    }
-  }
-}, 15 * 60 * 1000);
-
-// Custom store implementation with Railway compatibility
-const customStore = {
-  incr: (key, cb) => {
-    try {
-      const now = Date.now();
-      const windowMs = 15 * 60 * 1000; // 15 minutes
-      const resetTime = now + windowMs;
-      
-      if (!requestStore.has(key)) {
-        requestStore.set(key, {
-          count: 1,
-          resetTime: resetTime
-        });
-        // Return count, resetTime as Date object, totalHits (for compatibility)
-        return cb(null, 1, new Date(resetTime), 1);
-      }
-      
-      const data = requestStore.get(key);
-      
-      // Reset if window expired
-      if (now > data.resetTime) {
-        data.count = 1;
-        data.resetTime = resetTime;
-      } else {
-        data.count++;
-      }
-      
-      // Return count, resetTime as Date object, totalHits (for compatibility)
-      cb(null, data.count, new Date(data.resetTime), data.count);
-    } catch (error) {
-      logger.error('Rate limiter store error:', error);
-      // Fallback: allow request if store fails
-      const fallbackResetTime = Date.now() + 15 * 60 * 1000;
-      cb(null, 1, new Date(fallbackResetTime), 1);
-    }
-  },
-  
-  decrement: (key) => {
-    try {
-      if (requestStore.has(key)) {
-        const data = requestStore.get(key);
-        data.count = Math.max(0, data.count - 1);
-      }
-    } catch (error) {
-      logger.error('Rate limiter decrement error:', error);
-    }
-  },
-  
-  resetKey: (key) => {
-    try {
-      requestStore.delete(key);
-    } catch (error) {
-      logger.error('Rate limiter resetKey error:', error);
-    }
-  }
-};
-
-// Rate limit handler
+// Rate limit handler with security logging
 const rateLimitHandler = (req, res) => {
   logger.securityEvent('Rate limit exceeded', {
     ip: req.ip,
@@ -88,19 +18,13 @@ const rateLimitHandler = (req, res) => {
   });
 };
 
-// Skip successful requests for certain endpoints
-const skipSuccessfulRequests = (req, res) => {
-  return res.statusCode < 400;
-};
-
-// General API rate limiter
+// General API rate limiter - simplified and Railway-compatible
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
   message: 'Too many API requests from this IP, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-  store: customStore,
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   handler: rateLimitHandler,
   skip: (req) => {
     // Skip rate limiting for health checks
@@ -115,7 +39,6 @@ const authLimiter = rateLimit({
   message: 'Too many authentication attempts, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
-  store: customStore,
   handler: rateLimitHandler,
   skipSuccessfulRequests: true // Don't count successful logins
 });
@@ -127,7 +50,6 @@ const uploadLimiter = rateLimit({
   message: 'Too many file uploads, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
-  store: customStore,
   handler: rateLimitHandler
 });
 
@@ -138,7 +60,6 @@ const adminLimiter = rateLimit({
   message: 'Too many admin requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
-  store: customStore,
   handler: rateLimitHandler
 });
 
@@ -149,12 +70,10 @@ const passwordResetLimiter = rateLimit({
   message: 'Too many password reset attempts, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
-  store: customStore,
   handler: rateLimitHandler
 });
 
-
-// Create custom rate limiter
+// Create custom rate limiter factory
 const createRateLimiter = (options = {}) => {
   const {
     windowMs = 15 * 60 * 1000,
@@ -170,7 +89,6 @@ const createRateLimiter = (options = {}) => {
     message,
     standardHeaders: true,
     legacyHeaders: false,
-    store: customStore,
     handler: rateLimitHandler,
     skipSuccessfulRequests,
     skipFailedRequests
