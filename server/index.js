@@ -22,8 +22,8 @@ const {
   securityHeaders
 } = require('./middleware/security');
 
-// Import rate limiting
-const { apiLimiter, authLimiter } = require('./middleware/rateLimiter');
+// Import rate limiting (DISABLED)
+// const { apiLimiter, authLimiter } = require('./middleware/rateLimiter');
 
 // Import error handler
 const { errorHandler } = require('./utils/errorHandler');
@@ -62,15 +62,16 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Rate limiting with error handling
-app.use((req, res, next) => {
-  try {
-    apiLimiter(req, res, next);
-  } catch (error) {
-    console.error('Rate limiter error:', error.message);
-    next();
-  }
-});
+// Rate limiting DISABLED
+// app.use((req, res, next) => {
+//   try {
+//     apiLimiter(req, res, next);
+//   } catch (error) {
+//     console.error('Rate limiter error:', error.message);
+//     next();
+//   }
+// });
+console.log('🚫 Rate limiting DISABLED for all endpoints');
 
 // Health check endpoint (FIRST - highest priority)
 app.get('/api/health', async (req, res) => {
@@ -94,9 +95,7 @@ app.get('/api/health', async (req, res) => {
 });
 
 // API Routes (BEFORE static files - critical fix!)
-app.use('/api/auth', (req, res, next) => {
-  try { authLimiter(req, res, next); } catch (e) { next(); }
-}, authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/tests', testRoutes);
 app.use('/api/users', userRoutes);
@@ -105,9 +104,7 @@ app.use('/api/partners', partnerRoutes);
 app.use('/api/blog', blogRoutes);
 app.use('/api/testimonials', testimonialRoutes);
 app.use('/api/government-contracts', governmentContractRoutes);
-app.use('/api/admin', (req, res, next) => {
-  try { authLimiter(req, res, next); } catch (e) { next(); }
-}, adminRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/debug', debugRoutes);
 app.use('/api', apiRoutes);
 

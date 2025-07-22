@@ -1,4 +1,4 @@
-const { Category, Test } = require('../models');
+const { Category, Test, Testimonial, GovernmentContract } = require('../models');
 const sequelize = require('../config/database');
 
 async function seedRailwayDatabase() {
@@ -506,6 +506,163 @@ async function seedRailwayDatabase() {
     });
     
     console.log(`🧪 Total tests: ${totalTests}`);
+
+    // Seed Testimonials
+    console.log('\n💬 Seeding testimonials...');
+    const testimonials = [
+      {
+        name: 'Dr. Sarah Johnson',
+        position: 'Research Director',
+        company: 'BioTech Solutions Inc.',
+        content: 'The analytical testing services provided were exceptional. The detailed reports and quick turnaround time helped us accelerate our research timeline significantly.',
+        rating: 5,
+        featured: true,
+        active: true
+      },
+      {
+        name: 'Michael Chen',
+        position: 'Quality Control Manager',
+        company: 'PharmaCorp Ltd.',
+        content: 'Outstanding precision and reliability in pharmaceutical testing. Their expertise in regulatory compliance made our FDA submission process seamless.',
+        rating: 5,
+        featured: true,
+        active: true
+      },
+      {
+        name: 'Dr. Emily Rodriguez',
+        position: 'Environmental Scientist',
+        company: 'EcoAnalytics Group',
+        content: 'Comprehensive environmental analysis with detailed methodology. The team\'s expertise in contamination detection is unmatched in the industry.',
+        rating: 5,
+        featured: true,
+        active: true
+      },
+      {
+        name: 'James Wilson',
+        position: 'Food Safety Director',
+        company: 'Fresh Foods International',
+        content: 'Reliable food safety testing that ensures our products meet the highest standards. Their nutritional analysis reports are thorough and accurate.',
+        rating: 5,
+        featured: false,
+        active: true
+      },
+      {
+        name: 'Dr. Lisa Park',
+        position: 'Materials Engineer',
+        company: 'Advanced Materials Corp.',
+        content: 'Excellent material characterization services. The XRD and surface analysis results provided crucial insights for our product development.',
+        rating: 5,
+        featured: false,
+        active: true
+      }
+    ];
+
+    for (const testimonialData of testimonials) {
+      const existingTestimonial = await Testimonial.findOne({ 
+        where: { name: testimonialData.name, company: testimonialData.company } 
+      });
+      if (!existingTestimonial) {
+        await Testimonial.create(testimonialData);
+        console.log(`  ✅ Created testimonial: ${testimonialData.name} - ${testimonialData.company}`);
+      }
+    }
+
+    // Seed Government Contracts
+    console.log('\n🏛️ Seeding government contracts...');
+    const governmentContracts = [
+      {
+        title: 'EPA Environmental Monitoring Services',
+        agency: 'Environmental Protection Agency',
+        contractNumber: 'EPA-2024-001',
+        description: 'Comprehensive environmental monitoring and analysis services for water quality assessment in federal facilities.',
+        value: 2500000.00,
+        startDate: new Date('2024-01-15'),
+        endDate: new Date('2026-01-14'),
+        status: 'active',
+        category: 'Environmental Testing',
+        contactPerson: 'Dr. Jennifer Martinez',
+        contactEmail: 'j.martinez@epa.gov',
+        requirements: 'ISO 17025 accreditation required, specialized equipment for trace metal analysis, 24/7 emergency response capability',
+        active: true
+      },
+      {
+        title: 'DOD Materials Testing Program',
+        agency: 'Department of Defense',
+        contractNumber: 'DOD-2024-MT-007',
+        description: 'Advanced materials characterization and testing services for military applications and equipment.',
+        value: 1800000.00,
+        startDate: new Date('2024-03-01'),
+        endDate: new Date('2027-02-28'),
+        status: 'active',
+        category: 'Materials Testing',
+        contactPerson: 'Colonel Robert Thompson',
+        contactEmail: 'r.thompson@defense.gov',
+        requirements: 'Security clearance required, specialized testing for composite materials, compliance with MIL-STD specifications',
+        active: true
+      },
+      {
+        title: 'FDA Pharmaceutical Analysis Contract',
+        agency: 'Food and Drug Administration',
+        contractNumber: 'FDA-2024-PA-012',
+        description: 'Independent pharmaceutical testing and analysis services for drug approval processes.',
+        value: 3200000.00,
+        startDate: new Date('2024-02-01'),
+        endDate: new Date('2027-01-31'),
+        status: 'active',
+        category: 'Pharmaceutical Testing',
+        contactPerson: 'Dr. Amanda Foster',
+        contactEmail: 'a.foster@fda.gov',
+        requirements: 'GMP compliance, FDA registration, expertise in analytical method validation, CLIA certification',
+        active: true
+      },
+      {
+        title: 'USDA Food Safety Testing Initiative',
+        agency: 'United States Department of Agriculture',
+        contractNumber: 'USDA-2024-FS-005',
+        description: 'Food safety testing and pathogen detection services for agricultural products and food processing facilities.',
+        value: 1500000.00,
+        startDate: new Date('2024-04-01'),
+        endDate: new Date('2026-03-31'),
+        status: 'active',
+        category: 'Food Safety',
+        contactPerson: 'Dr. Michael Davis',
+        contactEmail: 'm.davis@usda.gov',
+        requirements: 'HACCP certification, rapid pathogen detection capabilities, mobile testing units available',
+        active: true
+      },
+      {
+        title: 'NIH Biomedical Research Support',
+        agency: 'National Institutes of Health',
+        contractNumber: 'NIH-2024-BR-018',
+        description: 'Specialized biomedical testing and analysis services supporting NIH research initiatives.',
+        value: 2100000.00,
+        startDate: new Date('2024-01-01'),
+        endDate: new Date('2026-12-31'),
+        status: 'active',
+        category: 'Biomedical Research',
+        contactPerson: 'Dr. Sarah Kim',
+        contactEmail: 's.kim@nih.gov',
+        requirements: 'Experience with clinical samples, IRB compliance, specialized molecular diagnostics capabilities',
+        active: true
+      }
+    ];
+
+    for (const contractData of governmentContracts) {
+      const existingContract = await GovernmentContract.findOne({ 
+        where: { contractNumber: contractData.contractNumber } 
+      });
+      if (!existingContract) {
+        await GovernmentContract.create(contractData);
+        console.log(`  ✅ Created government contract: ${contractData.title} (${contractData.contractNumber})`);
+      }
+    }
+
+    // Final count
+    const testimonialCount = await Testimonial.count({ where: { active: true } });
+    const contractCount = await GovernmentContract.count({ where: { active: true } });
+
+    console.log(`💬 Total testimonials: ${testimonialCount}`);
+    console.log(`🏛️ Total government contracts: ${contractCount}`);
     console.log('\n✅ Your Railway database is now fully populated!');
     console.log('🌐 Visit your website to see all the services displayed.');
 
