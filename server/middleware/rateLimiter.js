@@ -27,8 +27,8 @@ const customStore = {
           count: 1,
           resetTime: resetTime
         });
-        // Return count, resetTime as number, totalHits (for compatibility)
-        return cb(null, 1, resetTime, 1);
+        // Return count, resetTime as Date object, totalHits (for compatibility)
+        return cb(null, 1, new Date(resetTime), 1);
       }
       
       const data = requestStore.get(key);
@@ -41,13 +41,13 @@ const customStore = {
         data.count++;
       }
       
-      // Return count, resetTime as number, totalHits (for compatibility)
-      cb(null, data.count, data.resetTime, data.count);
+      // Return count, resetTime as Date object, totalHits (for compatibility)
+      cb(null, data.count, new Date(data.resetTime), data.count);
     } catch (error) {
       logger.error('Rate limiter store error:', error);
       // Fallback: allow request if store fails
       const fallbackResetTime = Date.now() + 15 * 60 * 1000;
-      cb(null, 1, fallbackResetTime, 1);
+      cb(null, 1, new Date(fallbackResetTime), 1);
     }
   },
   

@@ -50,8 +50,8 @@ const HOST = process.env.HOST || '0.0.0.0';
 
 console.log('🚀 RAILWAY CACHE-DISABLED SERVER: Starting initialization...');
 
-// Trust proxy for Railway
-app.set('trust proxy', true);
+// Trust proxy for Railway (specific proxy count for security)
+app.set('trust proxy', 1);
 
 // Security middleware
 app.use(helmet(helmetConfig));
